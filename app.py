@@ -29,13 +29,22 @@ def index():
     port = request.form.get('port', DEFAULT_PORT)
     folder_path = request.form.get('path', '')  # No default path, user must input
 
+    # Normalize and convert the folder path to absolute
+    if folder_path:
+        folder_path = os.path.normpath(folder_path)  # Normalize path (handle backslashes on Windows)
+        folder_path = os.path.abspath(folder_path)  # Convert to absolute path
+
+        # Check if the path exists
+        if not os.path.isdir(folder_path):
+            message = f"❌ Path does not exist: {folder_path}"
+
     if request.method == 'POST':
         action = request.form['action']
 
         if action == 'Start':
             # Only start the server if it's not already running
             if process is None:
-                if not os.path.isdir(folder_path):
+                if not folder_path or not os.path.isdir(folder_path):
                     message = f"❌ Path does not exist: {folder_path}"
                 else:
                     try:
@@ -54,6 +63,7 @@ def index():
             # Stop the server if it's running
             if process is not None:
                 process.terminate()
+                process.wait()  # Ensure the process terminates correctly
                 process = None
                 message = "🛑 Server stopped."
             else:
@@ -62,4 +72,4 @@ def index():
     return render_template('index.html', message=message, port=port, folder_path=folder_path, ip_address=ip_address)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)  # Turn off debugging for production
